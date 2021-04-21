@@ -141,8 +141,8 @@
 /obj/machinery/mechanical/bearing/proc/handle_overload()
 	if(rpm > max_rpm)
 		var/diff = max(rpm - max_rpm, 0)
-		if(prob(1 + instability + log(diff) * 2))
-			overstress()
+		if(flywheel && prob(1 + instability + log(diff) * 2))
+			flywheel.overstress()
 	else
 		instability -= min(rand(2, 8), instability)
 
@@ -168,14 +168,14 @@
 	name = "electric flywheel motor"
 	desc = "A high-power motor designed to input kinetic energy into a flywheel"
 	icon_state = "motor"
-	var/max_input = 50000 // joules
-	var/current_input = 0
-	var/rotor_radius = 0.5
+	var/capacity = 50000 // max amount of input
+	var/current_amt = 0 // current amount of input
+	var/rotor_radius = 0.5 // radius of the rotor, used in tile calculations
 
 /obj/machinery/mechanical/power/motor/process()
-	if(!current_input || !powernet || (stat & BROKEN) || !flywheel)
+	if(!current_amt || !powernet || (stat & BROKEN) || !flywheel)
 		return
-	var/drained = min(current_input, powernet.surplus(), max_input)
+	var/drained = min(current_amt, powernet.surplus(), capacity)
 	if(drained)
 		powernet.add_load(drained)
 		flywheel.add_energy(drained * GLOB.CELLRATE) // convert watts to joules
@@ -187,4 +187,20 @@
 			return TRUE
 	return FALSE
 
-/obj/machinery/mechanical/power/
+/obj/machinery/mechanical/power/motor/examine()
+	. = ..()
+	if(!powernet)
+		. += "<span class = 'warning'>It's not currently connected to a grid.</span>"
+
+/obj/machinery/mechanical/power/motor/generator
+	name = "electric generator"
+	desc = "Converts mechanical energy into electricty"
+	icon_state = "generator"
+
+/obj/machinery/mechanical/power/motor/process()
+	if(!current_amt || !powernet || (stat & BROKEN) || !flywheel)
+		return
+	var/added = min(current_amt, flywheel.get_energy(), capacity)
+	if(added > 0)
+		powernet.add_avail(added)
+		flywheel.suck_energy(added / GLOB.CELLRATE) // convert joules to watts

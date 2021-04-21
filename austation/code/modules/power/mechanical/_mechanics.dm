@@ -22,6 +22,9 @@
 			return TRUE
 	return FALSE
 
+/obj/machinery/mechanical/proc/overstress()
+	return
+
 // How much operational capacity is removed/restored when being damaged or repaired respectively
 #define RPM_LOSS 700
 
