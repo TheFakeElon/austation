@@ -13,10 +13,10 @@
 	var/damaged = FALSE
 	var/max_rpm = 60000 // max rotations per minute before we start taking damage
 	var/list/connections = list() // connected mechanical parts
-	var/obj/effect/flywheel/flywheel // connected flywheel, if any
+	var/obj/machinery/mechanical/flywheel/flywheel // connected flywheel, if any
 
 /obj/machinery/mechanical/proc/locate_wheel(turf/T)
-	for(var/obj/effect/flywheel/W in T)
+	for(var/obj/machinery/mechanical/flywheel/W in T)
 		if(W.master)
 			flywheel = W
 			return TRUE

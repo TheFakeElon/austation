@@ -19,7 +19,7 @@
 
 	// flywheel radius in meters, used for maths.
 	// I would reccomend keeping it consistent with tile length, treating each meter as a tile.
-	var/radius = 1.5
+	var/radius = 1
 	var/mass = 100 // mass in kilograms.
 	var/rpm = 0
 	var/angular_mass = 0
@@ -55,7 +55,6 @@
 		for(var/obj/machinery/mechanical/flywheel/F in additional)
 			F.rpm += rpm_increase
 	rpm += rpm_increase
-	bearing.rpm = rpm
 	return TRUE
 
 /obj/machinery/mechanical/flywheel/proc/overstress(warning = TRUE)
@@ -77,22 +76,32 @@
 		for(var/obj/machinery/mechanical/flywheel/F in additional)
 			F.rpm -= sucked
 	rpm -= sucked
-	bearing.rpm = rpm
 	return TRUE
+
+/obj/machinery/mechanical/flywheel/Bumped(atom/movable/AM)
+	if(AM.movement_type & UNSTOPPABLE)
+		return
+	var/bonk = log(rpm) * 10
+	if(bonk > 25)
+		if(isliving(AM))
+			var/mob/living/L = AM
+			L.adjustBruteLoss(bonk)
+		playsound(src, 'sound/effects/clang.ogg', min(bonk, 100), FALSE)
+	AM.throw_at(get_edge_target_turf(src, get_dir(src, AM), bonk, bonk / 10))
 
 /obj/machinery/mechanical/flywheel/small
 	name = "small flywheel"
-	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy. This one is a bit smaller than most"
+	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy. This one is a bit smaller than most."
 	icon_state = "flywheel_small"
 	radius = 0.5
-	mass = 75
+	mass = 50
 
 /obj/machinery/mechanical/flywheel/large
 	name = "large flywheel"
-	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy. This one is quiet bulkier than most"
-	icon_state = "flywheel_small"
-	radius = 2.5
-	mass = 200
+	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy. This one is a bit bulkier than most."
+	icon_state = "flywheel_large"
+	radius = 1.5
+	mass = 175
 
 // -------------- BEARINGS -------------------
 
@@ -115,22 +124,23 @@
 	return ..()
 
 /obj/machinery/mechanical/bearing/proc/startup()
-	if(!flywheel)
-		flywheel = locate() in loc
+	if(!flywheel && !locate_wheel(get_turf(src)))
+		return FALSE
 	START_PROCESSING(SSmachines, src)
 	soundloop.start()
+	return TRUE
 
 /obj/machinery/mechanical/bearing/process()
 	if(!flywheel || (stat & BROKEN))
 		return PROCESS_KILL
 
-	if(rpm > max_rpm || (flywheel.mass > max_weight && has_gravity(get_turf(src))))
+	if(flywheel.rpm > max_rpm || (flywheel.mass > max_weight && has_gravity(get_turf(src))))
 		instability += rand(0.2, 2.5)
 		handle_overload()
 		return
 
 	if(instability)
-		if(max_rpm > rpm)
+		if(max_rpm > flywheel.rpm)
 			instability -= min(rand(2, 3), instability)
 
 		if(instability > instability_threshold)
@@ -139,8 +149,8 @@
 		handle_overload()
 
 /obj/machinery/mechanical/bearing/proc/handle_overload()
-	if(rpm > max_rpm)
-		var/diff = max(rpm - max_rpm, 0)
+	if(flywheel?.rpm > max_rpm)
+		var/diff = max(flywheel.rpm - max_rpm, 0)
 		if(flywheel && prob(1 + instability + log(diff) * 2))
 			flywheel.overstress()
 	else
@@ -148,17 +158,14 @@
 
 #define WEIGHT_LOSS 100
 
-/// permanently reduces the bearing's load capacity, multiplied by the "damage" argument
 /obj/machinery/mechanical/bearing/take_damage(damage)
 	..()
 	max_weight -= WEIGHT_LOSS * damage
 
-/// same as take_damage() but reversed
 /obj/machinery/mechanical/bearing/restore_integrity(repair)
-	. = ..()
 	var/o_weight = initial(max_weight)
 	max_weight = min(max_weight + WEIGHT_LOSS * repair, o_weight)
-	if(damaged && max_weight == o_weight && .)
+	if(..() && damaged && max_weight == o_weight)
 		damaged = FALSE
 		return TRUE
 
@@ -197,7 +204,7 @@
 	desc = "Converts mechanical energy into electricty"
 	icon_state = "generator"
 
-/obj/machinery/mechanical/power/motor/process()
+/obj/machinery/mechanical/power/motor/generator/process()
 	if(!current_amt || !powernet || (stat & BROKEN) || !flywheel)
 		return
 	var/added = min(current_amt, flywheel.get_energy(), capacity)
