@@ -13,6 +13,8 @@
 	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy"
 	icon_state = "flywheel"
 	appearance_flags = KEEP_TOGETHER
+	pixel_x = -16
+	pixel_y = -16
 	var/obj/machinery/mechanical/bearing/bearing
 	var/list/additional = list() // additional connected flywheels, used for flywheel stacking
 	var/master = TRUE // is not a child addition of another flywheel. flywheel components can only interact with the master wheel
@@ -93,6 +95,8 @@
 	name = "small flywheel"
 	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy. This one is a bit smaller than most."
 	icon_state = "flywheel_small"
+	pixel_x = 0
+	pixel_y = 0
 	radius = 0.5
 	mass = 50
 
@@ -100,6 +104,8 @@
 	name = "large flywheel"
 	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy. This one is a bit bulkier than most."
 	icon_state = "flywheel_large"
+	pixel_x = -32
+	pixel_y = -32
 	radius = 1.5
 	mass = 175
 
@@ -116,14 +122,17 @@
 /obj/machinery/mechanical/bearing/Initialize()
 	. = ..()
 	soundloop = new(list(src))
-	locate_wheel(get_turf(src))
 
 /obj/machinery/mechanical/bearing/Destroy()
+	locate_wheel()
+	if(flywheel)
+		flywheel.footloose()
 	STOP_PROCESSING(SSmachines, src)
 	QDEL_NULL(soundloop)
 	return ..()
 
 /obj/machinery/mechanical/bearing/proc/startup()
+	locate_wheel()
 	if(!flywheel && !locate_wheel(get_turf(src)))
 		return FALSE
 	START_PROCESSING(SSmachines, src)

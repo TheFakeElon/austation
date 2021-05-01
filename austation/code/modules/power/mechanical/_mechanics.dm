@@ -15,12 +15,22 @@
 	var/list/connections = list() // connected mechanical parts
 	var/obj/machinery/mechanical/flywheel/flywheel // connected flywheel, if any
 
+/obj/machinery/mechanical/Initialize()
+	. = ..()
+	locate_machinery()
+
+/obj/machinery/mechanical/on_construction()
+	locate_machinery()
+
 /obj/machinery/mechanical/proc/locate_wheel(turf/T)
 	for(var/obj/machinery/mechanical/flywheel/W in T)
 		if(W.master)
 			flywheel = W
 			return TRUE
 	return FALSE
+
+/obj/machinery/mechanical/locate_machinery()
+	return locate_wheel(get_turf(src))
 
 /obj/machinery/mechanical/proc/overstress()
 	return
