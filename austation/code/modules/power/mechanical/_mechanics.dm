@@ -22,7 +22,7 @@
 /obj/machinery/mechanical/on_construction()
 	locate_machinery()
 
-/obj/machinery/mechanical/proc/locate_wheel(turf/T)
+/obj/machinery/mechanical/proc/locate_flywheel(turf/T)
 	for(var/obj/machinery/mechanical/flywheel/W in T)
 		if(W.master)
 			flywheel = W
@@ -30,28 +30,11 @@
 	return FALSE
 
 /obj/machinery/mechanical/locate_machinery()
-	return locate_wheel(get_turf(src))
+	return locate_flywheel(get_turf(src))
 
 /obj/machinery/mechanical/proc/overstress()
 	return
 
-// How much operational capacity is removed/restored when being damaged or repaired respectively
-#define RPM_LOSS 700
-
-/// permanently reduces the load capacity, multiplied by the "damage" argument
-/obj/machinery/mechanical/bearing/proc/take_damage(damage)
-	damaged = TRUE
-	max_rpm -= RPM_LOSS * damage
-
-/// same as take_damage() but reversed
-/obj/machinery/mechanical/bearing/proc/restore_integrity(repair)
-	var/o_rpm = initial(max_rpm)
-	max_rpm = min(max_rpm + RPM_LOSS * repair, o_rpm)
-	if(damaged && max_rpm == o_rpm)
-		damaged = FALSE
-		return TRUE
-
-#undef RPM_LOSS
 /obj/machinery/mechanical/power
 	var/max_input = 50000 // joules
 	var/max_output = 50000 // joules

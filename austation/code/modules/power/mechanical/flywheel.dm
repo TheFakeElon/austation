@@ -114,7 +114,7 @@
 /obj/machinery/mechanical/bearing
 	name = "passive magnetic bearing"
 	desc = "A high"
-	var/max_weight = 1500
+	var/max_load = 1500
 	var/instability = 0
 	var/instability_threshold = 5
 	var/datum/looping_sound/flywheel/soundloop
@@ -143,7 +143,7 @@
 	if(!flywheel || (stat & BROKEN))
 		return PROCESS_KILL
 
-	if(flywheel.rpm > max_rpm || (flywheel.mass > max_weight && has_gravity(get_turf(src))))
+	if(flywheel.rpm > max_rpm || (flywheel.mass > max_load && has_gravity(get_turf(src))))
 		instability += rand(0.2, 2.5)
 		handle_overload()
 		return
@@ -153,32 +153,19 @@
 			instability -= min(rand(2, 3), instability)
 
 		if(instability > instability_threshold)
-			var/damage = (instability - instability_threshold) / 3
-			take_damage(damage)
 		handle_overload()
 
 /obj/machinery/mechanical/bearing/proc/handle_overload()
 	if(flywheel?.rpm > max_rpm)
 		var/diff = max(flywheel.rpm - max_rpm, 0)
 		if(flywheel && prob(1 + instability + log(diff) * 2))
-			flywheel.overstress()
+			flywheel.overstress() // handling in overstress() for consistency, even if it is only one call
 	else
 		instability -= min(rand(2, 8), instability)
 
-#define WEIGHT_LOSS 100
-
-/obj/machinery/mechanical/bearing/take_damage(damage)
-	..()
-	max_weight -= WEIGHT_LOSS * damage
-
-/obj/machinery/mechanical/bearing/restore_integrity(repair)
-	var/o_weight = initial(max_weight)
-	max_weight = min(max_weight + WEIGHT_LOSS * repair, o_weight)
-	if(..() && damaged && max_weight == o_weight)
-		damaged = FALSE
-		return TRUE
-
-#undef WEIGHT_LOSS
+/obj/machinery/mechanical/bearing/overstress()
+	qdel(src)
+	return TRUE
 
 /obj/machinery/mechanical/power/motor
 	name = "electric flywheel motor"
@@ -206,7 +193,7 @@
 /obj/machinery/mechanical/power/motor/examine()
 	. = ..()
 	if(!powernet)
-		. += "<span class = 'warning'>It's not currently connected to a grid.</span>"
+		. += "<span class='warning'>It's not currently connected to a grid.</span>"
 
 /obj/machinery/mechanical/power/motor/generator
 	name = "electric generator"
@@ -218,5 +205,5 @@
 		return
 	var/added = min(current_amt, flywheel.get_energy(), capacity)
 	if(added > 0)
-		powernet.add_avail(added)
-		flywheel.suck_energy(added / GLOB.CELLRATE) // convert joules to watts
+		powernet.add_avail(added / GLOB.CELLRATE))  // convert joules to watts
+		flywheel.suck_energy(added)
