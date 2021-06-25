@@ -1,4 +1,4 @@
-name: Autobuild TGUI
+name: Rebuild TGUI
 
 on:
   push:
@@ -8,9 +8,15 @@ on:
       - 'tgui/**.js'
       - 'tgui/**.scss'
 
+# Config
+env:
+  COMMIT_NAME: 'AustationBot'
+  COMMIT_EMAIL: 'austation@mcterra.id.au'
+  TOKEN: '${{ secrets.BOT_TOKEN }}'
+
 jobs:
-  build:
-    name: Rebuild TGUI
+  rebuild:
+    name: TGUI Automatic Rebuild
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,15 +28,15 @@ jobs:
         with:
           node-version: '>=12.13'
       - name: Build TGUI
-        run: bin/tgui --action
+        run: bin/tgui
         working-directory: ./tgui
       - name: Commit Artifacts
         run: |
-          git config --local user.email "austation@mcterra.id.au"
-          git config --local user.name "AustationBot"
+          git config --local user.email "${{ env.COMMIT_EMAIL }}"
+          git config --local user.name "${{ env.COMMIT_NAME }}"
           git pull origin master
           git commit -m "Automatic TGUI Rebuild [ci skip]" -a || true
-      - name: Push Artifacts
+      - name: Push
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.BOT_TOKEN }}
+          github_token: ${{ env.TOKEN }}
