@@ -22,7 +22,7 @@
 	return ..()
 
 /obj/machinery/mechanical/bearing/locate_flywheel()
-	for(var/obj/machinery/mechanical/flywheel/W in GLOB.machines)
+	for(var/obj/machinery/mechanical/flywheel/W in GLOB.mechanical)
 		if(W.master && W.loc == loc)
 			flywheel = W
 			return TRUE

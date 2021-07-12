@@ -1,7 +1,3 @@
-
-/// Make sure to update this if adding larger gears/wheels
-#define COMPONENT_SCAN_RANGE 3
-
 /obj/machinery/mechanical
 	name = "mechanical component"
 	icon = 'austation/icons/obj/machinery/mechanical.dmi'
@@ -23,6 +19,7 @@
 
 /obj/machinery/mechanical/Initialize()
 	. = ..()
+	GLOB.mechanical.Add(src)
 	locate_machinery()
 	bound_width = 32 * (radius * 2)
 	bound_height = 32 * (radius * 2)
@@ -31,7 +28,7 @@
 	locate_machinery()
 
 /obj/machinery/mechanical/proc/locate_flywheel()
-	for(var/obj/machinery/mechanical/flywheel/W in GLOB.machines)
+	for(var/obj/machinery/mechanical/flywheel/W in GLOB.mechanical)
 		if(W.master && get_dist(W) == W.radius * 2)
 			flywheel = W
 			return TRUE
@@ -43,9 +40,27 @@
 /obj/machinery/mechanical/proc/overstress()
 	qdel(src)
 
+/obj/machinery/mechanical/Destroy()
+	GLOB.mechanical.Remove(src)
+	return ..()
+
+
 // Mechanical components that utilize powernet should be a subtype of this
 /obj/machinery/mechanical/power
 	var/max_input = 50000 // joules
 	var/max_output = 50000 // joules
 	var/obj/structure/cable/cable
+
+
+// Basic gear
+/obj/machinery/mechanical/gear
+	name = "gear"
+	desc = "A basic gear used to transfer rotary motion between objects."
+	icon = 'austation/icon/obj/machinery/mechanical.dmi'
+	var/list/connected_gears = list()
+
+/obj/machinery/mechanical/gear/Initialize()
+
+
+/obj/machinery/mechanical/gear/proc/find_gears()
 

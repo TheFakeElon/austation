@@ -3,11 +3,6 @@
 // disk flywheels
 #define INERTIAL_CONSTANT 0.606
 
-// Rotations per minute to radians per second
-#define RPM_TO_RADS(R) (R / 60 * 2 * PI)
-
-#define RADS_TO_RPM(R) (R * 60 / 2 / PI)
-
 /obj/machinery/mechanical/flywheel
 	name = "flywheel"
 	desc = "An extremely durable, dense disk capable of storing large amounts of kinetic energy"
