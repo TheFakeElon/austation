@@ -212,6 +212,7 @@
 #include "austation\code\modules\power\mechanical\_mechanics.dm"
 #include "austation\code\modules\power\mechanical\flywheel.dm"
 #include "austation\code\modules\power\singularity.dm"
+#include "austation\code\modules\power\mechanical\gearnet.dm"
 #include "austation\code\modules\power\mechanical\rotor.dm"
 #include "austation\code\modules\power\reactor\fuel_rods.dm"
 #include "austation\code\modules\power\reactor\rbmk.dm"
