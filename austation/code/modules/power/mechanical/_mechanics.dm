@@ -4,25 +4,33 @@
 	anchored = TRUE
 	obj_flags = CAN_BE_HIT | ON_BLUEPRINTS
 	var/damaged = FALSE
-	var/gearable = TRUE // Can this be spun by gears?
+	var/rpm = 0
 	var/max_rpm = 60000 // max rotations per minute before we start taking damage
-	var/list/connections = list() // connected mechanical parts
+//	var/list/connections = list() // connected mechanical parts
 
 	// part radius in meters (tiles).
 	// keep it consistent with tile length, treating each meter as a tile. The resulting **diameter** should always be a whole number
 	// I.e, a radius of one will take up two tiles, a radius of 1.5 will take up 3. Hitboxes are dynamically asigned on init based off this value
 	// 0.5 should be used for one tile (32x32 pixel) objects
-	var/radius = 0
+	var/radius = 0.5
+	var/radius_hitbox = TRUE // use radius for bounding boxes?
 
 /obj/structure/mechanical/New()
 	..()
 	GLOB.mechanical.Add(src)
-	locate_mechanical()
-	bound_width = 32 * (radius * 2)
-	bound_height = 32 * (radius * 2)
+	if(radius_hitbox)
+		bound_width = 32 * (radius * 2)
+		bound_height = 32 * (radius * 2)
 
-/obj/structure/mechanical/proc/locate_mechanical()
-	return TRUE
+/obj/structure/mechanical/proc/locate_flywheel()
+	for(var/obj/structure/flywheel/W in GLOB.mechanical)
+		if(W.master && get_dist(W) == W.radius * 2)
+			return W
+	return FALSE
+
+// This should be used instead of process() whenever interacting with the gearnet. Ran through SSmechanics
+/obj/structure/mechanical/proc/transmission_process()
+	return
 
 /obj/structure/mechanical/proc/overstress()
 	qdel(src)
@@ -31,11 +39,6 @@
 	GLOB.mechanical.Remove(src)
 	return ..()
 
-// Mechanical components that utilize powernet should be a subtype of this
-/obj/structure/mechanical/power
-	var/max_input = 50000 // joules
-	var/max_output = 50000 // joules
-	var/obj/structure/cable/cable
 
 // Basic gear
 /obj/structure/mechanical/gear
@@ -44,13 +47,16 @@
 	icon = 'austation/icon/obj/machinery/mechanical.dmi'
 	radius = 0.5
 	var/datum/gearnet/gearnet
+	var/source = FALSE // Is this a source part? (Does it add energy to the system) Used for gearnet propergation
+
 //	var/gear_ratio = (rotor_radius * 2 * PI) / (flywheel.radius * 2 * PI)
 
-/obj/structure/mechanical/gear/locate_mechanical()
+/obj/structure/mechanical/gear/proc/get_connections()
+	var/list/connected = list()
 	for(var/obj/structure/mechanical/gear/G in GLOB.mechanical)
 		if(get_dist(src, G) == radius * 2)
-			gearnet = G.gearnet
-			if(!gearnet)
-				gearnet = new()
-			gearnet.add_gear(src)
+			connected.Add(G)
+	return connected
+
+
 

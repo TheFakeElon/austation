@@ -121,6 +121,7 @@
 #define INIT_ORDER_ATOMS			30
 #define INIT_ORDER_LANGUAGE			25
 #define INIT_ORDER_MACHINES			20
+#define INIT_ORDER_MECHANICS		18 // Austation subsytem. Not modularizing define because I'd rather have file conflicts than SS init ones :)
 #define INIT_ORDER_CIRCUIT			15
 #define INIT_ORDER_TIMER			1
 #define INIT_ORDER_DEFAULT			0

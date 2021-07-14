@@ -10,7 +10,7 @@
 	var/instability_threshold = 5
 	var/datum/looping_sound/flywheel/soundloop
 
-	var/obj/structure/mechanical/flywheel/flywheel // connected flywheel, if any
+	var/obj/structure/flywheel/flywheel // connected flywheel, if any
 
 /obj/structure/mechanical/bearing/Initialize()
 	. = ..()
@@ -23,8 +23,8 @@
 	QDEL_NULL(soundloop)
 	return ..()
 
-/obj/structure/mechanical/bearing/locate_mechanical()
-	for(var/obj/structure/mechanical/flywheel/W in GLOB.mechanical)
+/obj/structure/mechanical/bearing/locate_flywheel()
+	for(var/obj/structure/flywheel/W in GLOB.mechanical)
 		if(W.master && W.loc == loc)
 			flywheel = W
 			return TRUE
@@ -38,10 +38,10 @@
 	return TRUE
 
 /obj/structure/mechanical/bearing/process()
-	if(!flywheel || (stat & BROKEN))
+	if(!flywheel)
 		return PROCESS_KILL
 
-	if(flywheel.rpm > max_rpm || (flywheel.mass > max_load && has_gravity(get_turf(src))))
+	if(flywheel.rpm > max_rpm) // || (flywheel.mass > max_load && has_gravity(get_turf(src)))
 		instability += rand(0.2, 2.5)
 		handle_overload()
 		return
@@ -65,49 +65,69 @@
 	qdel(src)
 	return TRUE
 
-// -------------- MOTORS -------------------
+// -------------- FLYWHEEL MOTORS -------------------
 
-/obj/structure/mechanical/power/motor
+/obj/structure/mechanical/flywheel_motor
 	name = "electric flywheel motor"
 	desc = "A high-power motor designed to input kinetic energy into a flywheel"
-	icon_state = "motor"
+	icon_state = "fmotor"
 	radius = 0.5 // radius of the rotor
-	max_input = 50000 // max amount of input
+	var/max_delta = 50000 // max input/output in joules
 	var/current_amt = 0 // current amount of input
-	var/obj/structure/mechanical/flywheel/flywheel // connected flywheel, if any
+	var/obj/structure/flywheel/flywheel // connected flywheel, if any
+	var/obj/structure/cable/cable
 
-/obj/structure/mechanical/power/motor/locate_mechanical()
-	for(var/obj/structure/mechanical/flywheel/W in GLOB.mechanical)
+/obj/structure/mechanical/flywheel_motor/locate_mechanical()
+	for(var/obj/structure/flywheel/W in GLOB.mechanical)
 		if(W.master && get_dist(W) == W.radius * 2)
 			flywheel = W
 			return TRUE
 	return FALSE
 
-/obj/structure/mechanical/power/motor/process()
+/obj/structure/mechanical/flywheel_motor/process()
 	var/turf/T = get_turf(src)
 	cable = T.get_cable_node()
-	if(!current_amt || (stat & BROKEN) || !flywheel)
+	if(!current_amt || !flywheel)
 		return
 	var/drained = min(current_amt, cable.surplus(), max_input)
 	if(drained)
 		cable.add_load(drained)
 		flywheel.add_energy(drained * GLOB.CELLRATE) // convert watts to joules
 
-/obj/structure/mechanical/power/motor/examine()
+/obj/structure/mechanical/flywheel_motor/examine()
 	. = ..()
 	if(!cable)
 		. += "<span class='warning'>It's not currently connected to a grid.</span>"
 
-/obj/structure/mechanical/power/motor/generator
+/obj/structure/mechanical/flywheel_motor/generator
 	name = "electric generator"
 	desc = "Converts mechanical energy into electricty"
-	icon_state = "generator"
-	max_output = 50000
+	icon_state = "fgenerator"
+	max_delta = 100000
 
-/obj/structure/mechanical/power/motor/generator/process()
-	if(!current_amt || !cable || (stat & BROKEN) || !flywheel)
+/obj/structure/mechanical/flywheel_motor/generator/process()
+	if(!current_amt || !cable || !flywheel)
 		return
-	var/added = min(current_amt, flywheel.get_energy(), max_output)
+	var/added = min(current_amt, flywheel.get_energy(), max_delta)
 	if(added > 0)
 		cable.add_avail(added / GLOB.CELLRATE) // convert joules to watts
 		flywheel.suck_energy(added)
+
+// -------------- MECHANICAL MOTORS -------------------
+// ------ (Or more specifically, ones for gears.) -----
+
+/obj/structure/mechanical/gear/power/motor
+	name = "electric motor"
+	desc = "A high-power electric motor. Converts electrical energy into mechanical rotational energy."
+	icon_state = "motor"
+	radius = 0.5
+	max_input = 50000
+	source = TRUE
+
+/obj/structure/mechanical/gear/power/motor/locate_mechanical()
+	for(var/obj/structure/mechanical/M in GLOB.mechanical)
+		if(M.gearable && get_dist(src, M) == radius * 2)
+			gearnet = M.gearnet
+			if(!gearnet)
+				var/datum/gearnet/GN = new()
+				properagate_gear_network(src, GN)
